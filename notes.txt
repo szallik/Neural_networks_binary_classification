@@ -1,0 +1,50 @@
+Dane podzielone na:
+- train / val / test (70% / 15% / 15%)
+
+Wszystkie obrazy przeskalowane do rozmiaru 224 x 224 i przekonwertowane do RGB
+
+Brak brakujących lub uszkodzonych plików zweryfikowany skryptem testowym
+
+Wczytywanie danych realizowane przez data_loader.py.
+Wykorzystano tf.keras.utils.image_dataset_from_directory, parametry:
+- image_size = (224, 224)
+- batch_size = 32
+- label_mode = binary
+
+Dane ladowane bez normalizacji, bedzie ona zalezna od modelu 
+
+Utworzony skrypt test_pipeline.py w celu weryfikacji poprawnosci pipelineu
+Zweryfikowano:
+- poprawnosc ksztaltow batchy (batch, 224, 224, 3)
+- zakres wartości pikseli [0, 255]
+- poprawne etykiety binarne (0 – NORMAL, 1 – PNEUMONIA)
+- poprawną liczbę batchy w każdym zbiorze
+
+Planowane modele:
+Model 1 - wlasna CNN (baseline)
+- siec CNN zaprojektowana od zera 
+
+Model 2 - Transfer learning
+- pretrenowana architektura 
+
+Baseline CNN, ustalenia:
+- stabilny prosty przewidywalny (nie nastawiamy sie w 100% na maksymalizacje accuracy)
+- Architektura: 3 bloki Conv + pooling. Filtry 32 -> 64 -> 128
+- Pooling: MaxPool 2x2 po kazdym bloku 224 -> 112 -> 56 -> 28
+- Aktywacje: ReLU w ukrytych, Sigmoid na wyjsciu
+- Normalizacja: /255 jako element modelu
+- Klasyfikator: Flatten -> Dense(64) -> Dropout -> Dense(1)
+- Overfitting: Dropout + EarlyStopping jako obowiazek, opcjonalnie lekki L2, pozniej augmentacja
+- Metryki: Trening accuracy + AUC, monitorowanie: val_loss (+ val_auc). Raport confusion matrix + precision/recall (szczególnie dla PNEUMONIA).
+
+Baseline CNN, wartości startowe:
+- Batch size: 32
+- Epochs (max): 20
+- EarlyStopping: monitor: val_loss, patience: 5, restore_best_weights: True
+- Optimizer: Adam, learning rate: 1e-4
+- Dropout: 0.4 (w czesci klasyfikacyjnej)
+- L2 regularization: OFF (baseline)
+- Data augmentation: OFF (baseline)
+- Normalizacja: /255 w modelu
+- Metryki trenowania: accuracy, AUC
+- Zapisywanie: najlepszy model (wg val_loss), model koncowy po treningu
