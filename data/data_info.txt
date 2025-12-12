@@ -1,0 +1,55 @@
+INFORMACJE O ZBIORZE DANYCH
+
+ŹRÓDŁO:
+  Dataset: Chest X-Ray Images (Pneumonia)
+  Źródło: https://www.kaggle.com/paultimothymooney/chest-xray-pneumonia
+  Oryginalna struktura:
+      chest_xray/
+        train/
+          NORMAL/
+          PNEUMONIA/
+        val/
+          NORMAL/
+          PNEUMONIA/
+        test/
+          NORMAL/
+          PNEUMONIA/
+
+PRZETWARZANIE DANYCH
+
+1. Połączenie oryginalnych zbiorów train/val/test dla każdej klasy.
+2. Wymieszanie zdjęć wewnątrz każdej klasy (seed = 42 → podział powtarzalny).
+3. Nowy podział danych:
+      • 70% → train
+      • 15% → validation
+      • 15% → test
+4. Zachowane klasy:
+      NORMAL, PNEUMONIA
+
+PREPROCESSING OBRAZÓW
+
+• Konwersja wszystkich obrazów do formatu RGB.  
+• Zmiana rozmiaru: 224 × 224 piksele.  
+• Zachowanie oryginalnych nazw plików.  
+• Struktura docelowa:
+
+    data/
+      train/
+        NORMAL/
+        PNEUMONIA/
+      val/
+        NORMAL/
+        PNEUMONIA/
+      test/
+        NORMAL/
+        PNEUMONIA/
+
+WALIDACJA
+
+Uruchomiony skrypt test.py potwierdził:
+
+• wszystkie obrazy są w rozmiarze 224×224,  
+• wszystkie obrazy są w trybie RGB,  
+• brak uszkodzonych plików,  
+• liczba obrazów w folderach zgodna z podziałem 70/15/15.
+
