@@ -48,3 +48,87 @@ Baseline CNN, wartości startowe:
 - Normalizacja: /255 w modelu
 - Metryki trenowania: accuracy, AUC
 - Zapisywanie: najlepszy model (wg val_loss), model koncowy po treningu
+
+Weryfikacja architektury baseline CNN (test_models.py, model.summary)
+Celem zweryfikowanie poprawnosci architektury, ksztaltow tensorow na kolejnych etapach, liczby parametrow w poszczeg. warstwach i zgodnosci modelu z naszym zadaniem binarnej klasyfikacji
+Test wykonany przy pomocy model.summary() oraz prostego forward-pass:
+1. Warstwa wejsciowa
+InputLayer: (None, 224, 224, 3)
+Model oczekuje obrazow RGB o rozmiarze 224×224
+Wymiar None oznacza dowolny rozmiar batcha
+Brak parametrow bo warstwa wejsciowa sie nie uczy
+
+2. Normalizacja
+Rescaling(1/255)
+Piksele w zakresie [0, 255] sa przeskalowane do [0, 1]
+Brak parametrow po prostu operacja matematyczna
+
+3. Blok konwolucyjny 1
+Conv2D(32, 3×3, padding="same", ReLU)
+Wyjscie: (None, 224, 224, 32)
+Liczba parametrów: 896 bo (3×3×3 + 1) × 32 WYJASNIENIE jeden filtr ma 3x3x3 wag (3 kanaly wejscia) = 27 do tego 1 bias = 28 filtrow 32 wiec 28 x 32
+Uczy sie prostych cech tj krawedzie czy kontrast
+MaxPooling2D zmniejsza rozmiar: 224 → 112
+
+4. Blok konwolucyjny 2
+Conv2D(64, 3×3, padding="same", ReLU)
+Wyjscie: (None, 112, 112, 64) bo (3x3x32 + 1) x 64
+Bardziej zlozone wzorce
+MaxPooling2D: 112 → 56
+
+5. Blok konwolucyjny
+Conv2D(128, 3×3, padding="same", ReLU)
+Wyjscie: (None, 56, 56, 128)
+Liczba parametrów: 73 856 bo (3×3×64 + 1) × 128
+Te najbardziej zlozone cechy obrazu 
+MaxPooling2D: 56 → 28
+
+6. Flatten
+Wyjscie: (None, 100 352)
+28 × 28 × 128 = 100 352 bierzemy macierz 28x28x28 i "rozprostowujemy" ja do jedngo wektora jak przygotowanie do dense ktory oczekuje wlasnie wektora
+Brak parametrow 
+
+7. Czesc klasyfikacyjna 
+Dense(64, ReLU)
+Liczba parametrow: 6 422 592 bo 100352 x 64 + 64
+To jest nasze glowne zrodlo parametrow w modelu co jest typowe dla Flatten
+Dropout(0.4) czyli losowe wylaczenie 40% neuronow w treningu bo musimy redukowac overfitting czyli przeuczenie
+
+8. Warstwa wyjsciowa 
+Dense(1, sigmoid)
+Wyjscie: (None, 1)
+Liczba parametrow: 65 bo 64 + 1
+Sigmoid zwraca nam prawdopodobiesntwo klasy PNEUMONIA
+
+9. Podsumowanie parametrow
+Lacznie mamy 6 515 905 z czego wszystkie trainable 
+Wiekoszosc pochodzi z dense po flatten 
+Jest ich sporo ale chyba dalej akceptowalnie dla baseline cnn z dropoutem i early stopping
+
+10. Forward-pass (czyli smoke test)
+- Wejscie testowe: (4, 224, 224, 3)
+- Wyjscie modelu: (4, 1)
+- Zakres wartosci wyjsciowych: ~0.50 – 0.52
+- Wynik zgodny z oczekiwaniami losow inicjacja modelu daje wartosci bliskie 0.5, nie ma bledow numerycznych i mamy poprawny format wyjscia 
+
+
+Sanity run treningu baseline CNN
+Szybkie sprawdzenie czy pipeline dziala poprawnie, model sie uczy (loss spada) i nie wystepuja bledy numeryczne lub logiczne przed pelnym treningiem
+Nie jako ocena jakosci modelu a sprawdzenie czy wszystko git
+Config sanity runu:
+Model: baseline CNN (3 bloki Conv + Flatten)
+- Dropout: 0.4
+- Optimizer: Adam (learning rate = 1e-4)
+- Loss: binary_crossentropy
+- Metryki: accuracy, AUC
+- Epoki: 2
+- Steps per epoch: 10
+- Validation steps: 3
+- Seed: 42 dla powtarzalnosci ale to opcjonalne w sumie
+Wyniki:
+- Loss treningowy spadl z 0.63 na 0.59
+- AUC treningowe wzroslo z ~0.48 na ~0.70
+- Brak NaN, bledow runtime lub problemow z danymi
+- Model calkowicie poprawnie wykonuje forward i backward pass
+- Wartosci walidacyjne (accuracy, AUC) akurat nie interpretujemy bo mamy mala liczbe krokow walidacji
+Wiec podsumowujac wszystko gra i buczy poprawnie przekazujemy dane model sie uczy i reaguje na dane archi i cnofig sa poprawne wiec mozna przechodzic do pelnego treningu
