@@ -132,3 +132,54 @@ Wyniki:
 - Model calkowicie poprawnie wykonuje forward i backward pass
 - Wartosci walidacyjne (accuracy, AUC) akurat nie interpretujemy bo mamy mala liczbe krokow walidacji
 Wiec podsumowujac wszystko gra i buczy poprawnie przekazujemy dane model sie uczy i reaguje na dane archi i cnofig sa poprawne wiec mozna przechodzic do pelnego treningu
+
+
+Pierwszy pełny trening baseline CNN (train_baseline.py)
+Dane wczytane przez data_loader.py i model zbudowany przez models.py:
+- baseline CNN (3 bloki Conv: 32->64->128, MaxPool po kazdym bloku),
+- Flatten -> Dense(64) -> Dropout(0.4) -> Dense(1, sigmoid),
+- normalizacja /255 w modelu (Rescaling), loader bez normalizacji.
+Kompilacja:
+- optimizer: Adam lr=1e-4
+- loss: binary_crossentropy
+- metryki: accuracy + AUC
+Callbacki:
+- EarlyStopping (monitor val_loss, patience=5, restore_best_weights=True),
+- ModelCheckpoint (save_best_only, monitor val_loss),
+- no i bardzo fajna opcja czyli TensorBoard
+
+Logika systemu runs/
+Kazde uruchomienie train_baseline.py  tworzy osobny katalog run u unikalnej nazwie
+Dzieki temu nie nadpisujemy wynikow poprzednich treningow i latwo mozemy sobie porownywac rozne eksporymenty (np rozny dropout itd)
+Kazdy run to taki troche snapshot kodu configu i wynikow oczywiscie
+Po pierwszym treningu mamy runs/baseline_20251213_192118/ = jeden konkretny trening + jego zapisane artefakty
+
+Struktura katalogu run:
+- runs/baseline_<run_id>/config.json to zapis konfiguracji treningu czyli np dense, dropout czy Epoki
+- runs/baseline_<run_id>/models/ tutaj mamy best_model.keras czyli najlepszy model wg val_loss (ModelCheckpoint) i do tego final_model.keras czyli model po treningu (po EarlyStopping i restore_best_weights)
+- runs/baseline_<run_id>/history/ tutaj mamy history.json/history.csv czyli pelna historia metryk z history.history doslownie epoka po epoce w dwoch formatach, i do tego final_metrics.json czyli metryki koncowe (val/test), czasy epok sciezki do ModelCheckpoint
+- runs/baseline_<run_id>/logs/tensorboard/ i tutaj sie znajduja logi do TensorBoard (wykresy loss/accuracy/AUC, przebieg treningu)
+
+TensorBoard o co wlasciwie z tym chodzi 
+TensorBoard ulatwia ocene jakiegos overfittingu czy ogolnej stabilnosci bo pozwala nam podejrzec sobie wykresy:
+- train vs val loss
+- train vs val accuracy
+- train vs val AUC
+Wystarczy ze z katalogu glownego projektu uruchomimy:
+tensorboard --logdir runs
+Czyli powiemy mu zeby poszukal sobie logow w katalogu runs/ a on je sobie automatycznie wykryje i na wykresach sobie mozemy przelaczac i porownywac wiele roznych uruchomien czy konkretnych katalogow walidacyjnych albo treningowych
+
+Mala wspominka jeszcze o:
+- best_model.keras ktory jest zapisywany w trakcie treningu gdy val_loss poprawia sie, jest to taki najlepszy punkt wg metryki ktora monitorujemy
+- final_model_keras zapisywany po zakonczeniu treningu ale poniewaz uzywamy restore_best_weights=True to on tez odpowiada wagom najlepszej Epoki
+wiec ogolnie te dwa sa do siebie bardzo podobne ale i tak trzymamy oba tak dla czytelnosci XD
+
+No i teraz juz podsumowajc kazda zmiana = nowy run ktory sobie pozniej mozemy porownac z poprzednim na podstawie wszystkich zapisanych metryk wykresow w tensorboard czy plikow history
+
+
+Po pierwszym treningu zdecydowalem sie na stworzenie poki co takiego basicowego/minimalistycznego run_evaluation.py
+bo callbacki i logi sa malo czytelne i srednio sie nadaja do takiej juz jakiejkolwiek analizy a bardziej do biezacego
+podgladu wiec ogarniam jeden skrypt ktory czytelnie i powtarzalnie podsumuje run 
+Uruchamiamy:
+- najnowszy run automatycznie python src/run_evaluation.py
+- albo konkretny run python src/run_evaluation.py --run baseline_20251213_192118
